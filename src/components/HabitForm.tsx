@@ -27,11 +27,7 @@ const HabitForm = ({ onAddHabit }: HabitFormProps) => {
         placeholder="Add a new habit..."
         className="flex-1 bg-card border-border focus:ring-primary"
       />
-      <Button
-        type="submit"
-        disabled={!habitName.trim()}
-        className="gap-2 px-4"
-      >
+      <Button type="submit" disabled={!habitName.trim()} className="gap-2 px-4">
         <Plus className="w-4 h-4" />
         <span className="hidden sm:inline">Add</span>
       </Button>

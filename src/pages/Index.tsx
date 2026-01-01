@@ -1,14 +1,13 @@
 import { useState } from 'react';
 import { ViewType } from '@/types/habit';
 import { useHabits } from '@/hooks/useHabits';
-import ViewSwitcher from '@/components/ViewSwitcher';
-import DailyChecklist from '@/components/DailyChecklist';
-import WeeklyReport from '@/components/WeeklyReport';
-import MonthlyReport from '@/components/MonthlyReport';
+import ViewTabs from '@/components/ViewTabs';
+import MonthlyGrid from '@/components/MonthlyGrid';
+import Analytics from '@/components/Analytics';
 import { Zap } from 'lucide-react';
 
 const Index = () => {
-  const [activeView, setActiveView] = useState<ViewType>('daily');
+  const [activeView, setActiveView] = useState<ViewType>('grid');
   const {
     habits,
     isLoaded,
@@ -16,11 +15,14 @@ const Index = () => {
     deleteHabit,
     toggleHabitRecord,
     isHabitCompleted,
-    getCompletionCount,
-    getHabitCompletionPercentage,
+    monthDays,
+    dailyData,
+    weeklyData,
+    habitCompletionData,
+    overallStats,
+    cumulativeData,
   } = useHabits();
 
-  // Show loading state while habits are being loaded from localStorage
   if (!isLoaded) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -32,9 +34,9 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b border-border">
-        <div className="max-w-2xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+      <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-lg border-b border-border">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
                 <Zap className="w-5 h-5 text-primary-foreground" />
@@ -48,35 +50,30 @@ const Index = () => {
                 </p>
               </div>
             </div>
+            <ViewTabs activeView={activeView} onViewChange={setActiveView} />
           </div>
         </div>
       </header>
 
-      {/* View Switcher */}
-      <div className="max-w-2xl mx-auto px-4 py-4">
-        <div className="flex justify-center">
-          <ViewSwitcher activeView={activeView} onViewChange={setActiveView} />
-        </div>
-      </div>
-
       {/* Main Content */}
-      <main className="max-w-2xl mx-auto px-4 pb-8">
-        {activeView === 'daily' && (
-          <DailyChecklist
+      <main className="max-w-7xl mx-auto px-4 py-6">
+        {activeView === 'grid' && (
+          <MonthlyGrid
             habits={habits}
+            monthDays={monthDays}
             onAddHabit={addHabit}
             onDeleteHabit={deleteHabit}
             onToggleHabit={toggleHabitRecord}
             isHabitCompleted={isHabitCompleted}
           />
         )}
-        {activeView === 'weekly' && (
-          <WeeklyReport habits={habits} getCompletionCount={getCompletionCount} />
-        )}
-        {activeView === 'monthly' && (
-          <MonthlyReport
-            habits={habits}
-            getHabitCompletionPercentage={getHabitCompletionPercentage}
+        {activeView === 'analytics' && (
+          <Analytics
+            dailyData={dailyData}
+            weeklyData={weeklyData}
+            habitCompletionData={habitCompletionData}
+            cumulativeData={cumulativeData}
+            overallStats={overallStats}
           />
         )}
       </main>
