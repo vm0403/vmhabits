@@ -1,7 +1,20 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Habit } from '@/types/habit';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Habit, DailyData, HabitCompletionData } from '@/types/habit';
+import { getCurrentMonthDays, getCurrentMonthDaysUntilToday, getLastNDays, formatDateLabel } from '@/utils/date';
 
 const STORAGE_KEY = 'habit-tracker-data';
+
+// Color palette for charts
+const CHART_COLORS = [
+  'hsl(168, 60%, 42%)',
+  'hsl(28, 85%, 60%)',
+  'hsl(200, 60%, 55%)',
+  'hsl(280, 60%, 55%)',
+  'hsl(340, 70%, 55%)',
+  'hsl(45, 80%, 55%)',
+  'hsl(120, 50%, 50%)',
+  'hsl(0, 70%, 55%)',
+];
 
 /**
  * Load habits from localStorage
@@ -12,8 +25,6 @@ const loadHabits = (): Habit[] => {
     if (!stored) return [];
     
     const parsed = JSON.parse(stored);
-    
-    // Validate the data structure
     if (!Array.isArray(parsed)) return [];
     
     return parsed.filter((habit: unknown) => {
@@ -64,9 +75,6 @@ export const useHabits = () => {
     }
   }, [habits, isLoaded]);
 
-  /**
-   * Add a new habit
-   */
   const addHabit = useCallback((name: string) => {
     if (!name.trim()) return;
     
@@ -79,16 +87,10 @@ export const useHabits = () => {
     setHabits((prev) => [...prev, newHabit]);
   }, []);
 
-  /**
-   * Delete a habit by ID
-   */
   const deleteHabit = useCallback((id: number) => {
     setHabits((prev) => prev.filter((habit) => habit.id !== id));
   }, []);
 
-  /**
-   * Toggle habit completion for a specific date
-   */
   const toggleHabitRecord = useCallback((id: number, date: string) => {
     setHabits((prev) =>
       prev.map((habit) => {
@@ -97,7 +99,6 @@ export const useHabits = () => {
         const newRecords = { ...habit.records };
         newRecords[date] = !newRecords[date];
         
-        // Remove the record if it's false to keep storage clean
         if (!newRecords[date]) {
           delete newRecords[date];
         }
@@ -107,9 +108,6 @@ export const useHabits = () => {
     );
   }, []);
 
-  /**
-   * Check if a habit is completed for a specific date
-   */
   const isHabitCompleted = useCallback(
     (id: number, date: string): boolean => {
       const habit = habits.find((h) => h.id === id);
@@ -118,29 +116,81 @@ export const useHabits = () => {
     [habits]
   );
 
-  /**
-   * Get completion count for a specific date
-   */
-  const getCompletionCount = useCallback(
-    (date: string): number => {
-      return habits.filter((habit) => habit.records[date] === true).length;
-    },
-    [habits]
-  );
+  // Memoized analytics data
+  const monthDays = useMemo(() => getCurrentMonthDays(), []);
+  const monthDaysUntilToday = useMemo(() => getCurrentMonthDaysUntilToday(), []);
+  const last7Days = useMemo(() => getLastNDays(7), []);
 
-  /**
-   * Get habit completion percentage for a date range
-   */
-  const getHabitCompletionPercentage = useCallback(
-    (habitId: number, dates: string[]): number => {
-      const habit = habits.find((h) => h.id === habitId);
-      if (!habit || dates.length === 0) return 0;
-      
-      const completedDays = dates.filter((date) => habit.records[date] === true).length;
-      return Math.round((completedDays / dates.length) * 100);
-    },
-    [habits]
-  );
+  // Daily completion data for line/bar charts
+  const dailyData = useMemo((): DailyData[] => {
+    return monthDaysUntilToday.map((date) => ({
+      date,
+      label: formatDateLabel(date),
+      completed: habits.filter((h) => h.records[date] === true).length,
+      total: habits.length,
+    }));
+  }, [habits, monthDaysUntilToday]);
+
+  // Weekly data (last 7 days)
+  const weeklyData = useMemo((): DailyData[] => {
+    return last7Days.map((date) => ({
+      date,
+      label: formatDateLabel(date),
+      completed: habits.filter((h) => h.records[date] === true).length,
+      total: habits.length,
+    }));
+  }, [habits, last7Days]);
+
+  // Habit completion data for pie/bar charts
+  const habitCompletionData = useMemo((): HabitCompletionData[] => {
+    const daysCount = monthDaysUntilToday.length;
+    
+    return habits.map((habit, index) => {
+      const completed = monthDaysUntilToday.filter((date) => habit.records[date] === true).length;
+      return {
+        id: habit.id,
+        name: habit.name,
+        completed,
+        total: daysCount,
+        percentage: daysCount > 0 ? Math.round((completed / daysCount) * 100) : 0,
+        color: CHART_COLORS[index % CHART_COLORS.length],
+      };
+    });
+  }, [habits, monthDaysUntilToday]);
+
+  // Overall stats
+  const overallStats = useMemo(() => {
+    const totalPossible = monthDaysUntilToday.length * habits.length;
+    const totalCompleted = habits.reduce((sum, habit) => {
+      return sum + monthDaysUntilToday.filter((date) => habit.records[date] === true).length;
+    }, 0);
+    const totalMissed = totalPossible - totalCompleted;
+    const percentage = totalPossible > 0 ? Math.round((totalCompleted / totalPossible) * 100) : 0;
+
+    return {
+      totalCompleted,
+      totalMissed,
+      totalPossible,
+      percentage,
+      habitsCount: habits.length,
+      daysTracked: monthDaysUntilToday.length,
+    };
+  }, [habits, monthDaysUntilToday]);
+
+  // Cumulative data for running total chart
+  const cumulativeData = useMemo(() => {
+    let runningTotal = 0;
+    return monthDaysUntilToday.map((date) => {
+      const completed = habits.filter((h) => h.records[date] === true).length;
+      runningTotal += completed;
+      return {
+        date,
+        label: formatDateLabel(date),
+        cumulative: runningTotal,
+        daily: completed,
+      };
+    });
+  }, [habits, monthDaysUntilToday]);
 
   return {
     habits,
@@ -149,7 +199,11 @@ export const useHabits = () => {
     deleteHabit,
     toggleHabitRecord,
     isHabitCompleted,
-    getCompletionCount,
-    getHabitCompletionPercentage,
+    monthDays,
+    dailyData,
+    weeklyData,
+    habitCompletionData,
+    overallStats,
+    cumulativeData,
   };
 };

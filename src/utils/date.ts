@@ -14,7 +14,10 @@ export const getTodayISO = (): string => {
  * Format a date to ISO string (YYYY-MM-DD)
  */
 export const formatDateISO = (date: Date): string => {
-  return date.toISOString().split('T')[0];
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 /**
@@ -41,6 +44,7 @@ export const getCurrentMonthDays = (): string[] => {
   const year = today.getFullYear();
   const month = today.getMonth();
   
+  // Handle leap years correctly
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const days: string[] = [];
   
@@ -72,25 +76,19 @@ export const getCurrentMonthDaysUntilToday = (): string[] => {
 };
 
 /**
- * Format date for display (e.g., "Mon 15")
+ * Format date for display (e.g., "Mon")
  */
-export const formatDateShort = (dateISO: string): string => {
+export const formatDayShort = (dateISO: string): string => {
   const date = new Date(dateISO + 'T00:00:00');
-  const day = date.toLocaleDateString('en-US', { weekday: 'short' });
-  const dayNum = date.getDate();
-  return `${day} ${dayNum}`;
+  return date.toLocaleDateString('en-US', { weekday: 'short' });
 };
 
 /**
- * Format date for display (e.g., "Monday, January 15")
+ * Format date for chart label (e.g., "Jan 15")
  */
-export const formatDateLong = (dateISO: string): string => {
+export const formatDateLabel = (dateISO: string): string => {
   const date = new Date(dateISO + 'T00:00:00');
-  return date.toLocaleDateString('en-US', { 
-    weekday: 'long', 
-    month: 'long', 
-    day: 'numeric' 
-  });
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
 /**
@@ -110,4 +108,20 @@ export const getCurrentMonthYear = (): string => {
 export const getDayFromISO = (dateISO: string): number => {
   const date = new Date(dateISO + 'T00:00:00');
   return date.getDate();
+};
+
+/**
+ * Check if a date is today
+ */
+export const isToday = (dateISO: string): boolean => {
+  return dateISO === getTodayISO();
+};
+
+/**
+ * Get week number for grouping
+ */
+export const getWeekOfMonth = (dateISO: string): number => {
+  const date = new Date(dateISO + 'T00:00:00');
+  const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+  return Math.ceil((date.getDate() + firstDay.getDay()) / 7);
 };
