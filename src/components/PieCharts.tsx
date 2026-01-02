@@ -1,6 +1,8 @@
+import { useMemo } from 'react';
 import { HabitCompletionData } from '@/types/habit';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { PieChart as PieChartIcon, Target } from 'lucide-react';
+import { useTheme } from '@/hooks/useTheme';
 
 interface PieChartsProps {
   habitCompletionData: HabitCompletionData[];
@@ -12,12 +14,20 @@ interface PieChartsProps {
 }
 
 const PieCharts = ({ habitCompletionData, overallStats }: PieChartsProps) => {
+  const { isDark } = useTheme();
   const hasData = habitCompletionData.length > 0;
+
+  // Theme-aware colors
+  const chartColors = useMemo(() => ({
+    success: isDark ? 'hsl(168, 55%, 50%)' : 'hsl(168, 60%, 42%)',
+    muted: isDark ? 'hsl(0, 0%, 45%)' : 'hsl(0, 0%, 63%)',
+    labelText: isDark ? 'hsl(0, 0%, 98%)' : 'hsl(0, 0%, 100%)',
+  }), [isDark]);
 
   // Overall completion vs missed data
   const overallData = [
-    { name: 'Completed', value: overallStats.totalCompleted, color: 'hsl(168, 60%, 42%)' },
-    { name: 'Missed', value: overallStats.totalMissed, color: 'hsl(var(--muted))' },
+    { name: 'Completed', value: overallStats.totalCompleted, color: chartColors.success },
+    { name: 'Missed', value: overallStats.totalMissed, color: chartColors.muted },
   ].filter((d) => d.value > 0);
 
   const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: { name: string; value?: number; percentage?: number } }> }) => {
@@ -48,7 +58,7 @@ const PieCharts = ({ habitCompletionData, overallStats }: PieChartsProps) => {
       <text
         x={x}
         y={y}
-        fill="white"
+        fill={chartColors.labelText}
         textAnchor="middle"
         dominantBaseline="central"
         className="text-xs font-medium"
@@ -110,7 +120,7 @@ const PieCharts = ({ habitCompletionData, overallStats }: PieChartsProps) => {
       {/* Habit-wise Percentage */}
       <div className="habit-card">
         <div className="flex items-center gap-2 mb-4">
-          <Target className="w-5 h-5 text-accent" />
+          <Target className="w-5 h-5 text-accent-foreground" />
           <h3 className="font-semibold text-foreground">Habit Completion %</h3>
         </div>
         <div className="h-64 w-full">
@@ -151,7 +161,7 @@ const PieCharts = ({ habitCompletionData, overallStats }: PieChartsProps) => {
                   className="w-3 h-3 rounded-full flex-shrink-0"
                   style={{ backgroundColor: habit.color }}
                 />
-                <span className="flex-1 text-sm text-foreground truncate">{habit.name}</span>
+                <span className="flex-1 text-sm text-foreground whitespace-normal break-words">{habit.name}</span>
                 <span className="text-sm font-medium text-muted-foreground">{habit.percentage}%</span>
               </div>
             ))}

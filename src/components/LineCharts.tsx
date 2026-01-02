@@ -12,6 +12,7 @@ import {
   AreaChart,
 } from 'recharts';
 import { TrendingUp } from 'lucide-react';
+import { useTheme } from '@/hooks/useTheme';
 
 interface LineChartsProps {
   dailyData: DailyData[];
@@ -20,6 +21,8 @@ interface LineChartsProps {
 }
 
 const LineCharts = ({ dailyData, cumulativeData, totalHabits }: LineChartsProps) => {
+  const { isDark } = useTheme();
+  
   // Only show data if we have habits
   const hasData = totalHabits > 0 && dailyData.length > 0;
 
@@ -27,6 +30,16 @@ const LineCharts = ({ dailyData, cumulativeData, totalHabits }: LineChartsProps)
     if (!hasData) return 1;
     return Math.max(...dailyData.map((d) => d.completed), totalHabits);
   }, [dailyData, totalHabits, hasData]);
+
+  // Theme-aware colors using CSS variables
+  const chartColors = useMemo(() => ({
+    grid: 'hsl(var(--border))',
+    text: 'hsl(var(--muted-foreground))',
+    success: isDark ? 'hsl(168, 55%, 50%)' : 'hsl(168, 60%, 42%)',
+    accent: isDark ? 'hsl(30, 97%, 72%)' : 'hsl(28, 85%, 60%)',
+    successGradientStart: isDark ? 'hsla(168, 55%, 50%, 0.3)' : 'hsla(168, 60%, 42%, 0.3)',
+    successGradientEnd: isDark ? 'hsla(168, 55%, 50%, 0)' : 'hsla(168, 60%, 42%, 0)',
+  }), [isDark]);
 
   const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; name: string }>; label?: string }) => {
     if (active && payload && payload.length) {
@@ -58,19 +71,19 @@ const LineCharts = ({ dailyData, cumulativeData, totalHabits }: LineChartsProps)
               <AreaChart data={dailyData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorCompleted" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(168, 60%, 42%)" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="hsl(168, 60%, 42%)" stopOpacity={0} />
+                    <stop offset="5%" stopColor={chartColors.success} stopOpacity={0.3} />
+                    <stop offset="95%" stopColor={chartColors.success} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                 <XAxis
                   dataKey="label"
-                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+                  tick={{ fill: chartColors.text, fontSize: 11 }}
                   tickLine={false}
                   axisLine={false}
                 />
                 <YAxis
-                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+                  tick={{ fill: chartColors.text, fontSize: 11 }}
                   tickLine={false}
                   axisLine={false}
                   domain={[0, maxCompleted]}
@@ -81,7 +94,7 @@ const LineCharts = ({ dailyData, cumulativeData, totalHabits }: LineChartsProps)
                   type="monotone"
                   dataKey="completed"
                   name="Completed"
-                  stroke="hsl(168, 60%, 42%)"
+                  stroke={chartColors.success}
                   strokeWidth={2}
                   fill="url(#colorCompleted)"
                 />
@@ -98,22 +111,22 @@ const LineCharts = ({ dailyData, cumulativeData, totalHabits }: LineChartsProps)
       {/* Cumulative Progress */}
       <div className="habit-card">
         <div className="flex items-center gap-2 mb-4">
-          <TrendingUp className="w-5 h-5 text-accent" />
+          <TrendingUp className="w-5 h-5 text-accent-foreground" />
           <h3 className="font-semibold text-foreground">Cumulative Progress</h3>
         </div>
         <div className="h-64 w-full">
           {hasData ? (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={cumulativeData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                 <XAxis
                   dataKey="label"
-                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+                  tick={{ fill: chartColors.text, fontSize: 11 }}
                   tickLine={false}
                   axisLine={false}
                 />
                 <YAxis
-                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+                  tick={{ fill: chartColors.text, fontSize: 11 }}
                   tickLine={false}
                   axisLine={false}
                   allowDecimals={false}
@@ -123,7 +136,7 @@ const LineCharts = ({ dailyData, cumulativeData, totalHabits }: LineChartsProps)
                   type="monotone"
                   dataKey="cumulative"
                   name="Total Completed"
-                  stroke="hsl(28, 85%, 60%)"
+                  stroke={chartColors.accent}
                   strokeWidth={2}
                   dot={false}
                 />

@@ -4,6 +4,7 @@ import { useHabits } from '@/hooks/useHabits';
 import ViewTabs from '@/components/ViewTabs';
 import MonthlyGrid from '@/components/MonthlyGrid';
 import Analytics from '@/components/Analytics';
+import ThemeToggle from '@/components/ThemeToggle';
 import { Zap } from 'lucide-react';
 
 const Index = () => {
@@ -56,7 +57,10 @@ const Index = () => {
                 </p>
               </div>
             </div>
-            <ViewTabs activeView={activeView} onViewChange={setActiveView} />
+            <div className="flex items-center gap-3">
+              <ViewTabs activeView={activeView} onViewChange={setActiveView} />
+              <ThemeToggle />
+            </div>
           </div>
         </div>
       </header>
