@@ -1,8 +1,7 @@
 import { Habit } from '@/types/habit';
 import { isToday, getDayFromISO, formatDayShort, getMonthYearLabel } from '@/utils/date';
 import HabitForm from './HabitForm';
-import HabitRow from './HabitRow';
-import { Calendar, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Sparkles, ChevronLeft, ChevronRight, Check, Trash2 } from 'lucide-react';
 import { Button } from './ui/button';
 
 interface MonthlyGridProps {
@@ -32,6 +31,9 @@ const MonthlyGrid = ({
   onPreviousMonth,
   onNextMonth,
 }: MonthlyGridProps) => {
+  // Calculate grid template columns - fixed habit name column + flexible day columns
+  const gridTemplateColumns = `minmax(120px, 160px) repeat(${monthDays.length}, minmax(28px, 1fr))`;
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header with Month Navigation */}
@@ -48,8 +50,8 @@ const MonthlyGrid = ({
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <div className="min-w-[160px] text-center">
-              <h2 className="text-2xl font-display font-semibold text-foreground">
+            <div className="min-w-[140px] text-center">
+              <h2 className="text-xl sm:text-2xl font-display font-semibold text-foreground">
                 {getMonthYearLabel(selectedYear, selectedMonth)}
               </h2>
             </div>
@@ -93,55 +95,101 @@ const MonthlyGrid = ({
           </p>
         </div>
       ) : (
-        /* Grid Container */
+        /* Grid Container - CSS Grid with responsive columns, NO horizontal scroll */
         <div className="habit-card p-0 overflow-hidden">
-          <div className="overflow-x-auto scrollbar-thin">
-            <div className="inline-block min-w-full">
-              {/* Header Row - Dates */}
-              <div className="flex border-b-2 border-border">
-                {/* Empty corner cell */}
-                <div className="sticky left-0 z-20 min-w-[180px] w-[180px] px-3 py-3 bg-card border-r border-border flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium text-muted-foreground">Habit</span>
+          {/* Header Row - Dates */}
+          <div
+            className="grid border-b-2 border-border"
+            style={{ gridTemplateColumns }}
+          >
+            {/* Corner cell with habit label */}
+            <div className="px-2 py-2 bg-card border-r border-border flex items-center gap-1">
+              <Calendar className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+              <span className="text-xs font-medium text-muted-foreground">Habit</span>
+            </div>
+
+            {/* Date headers - dynamically generated for selected month */}
+            {monthDays.map((date) => {
+              const day = getDayFromISO(date);
+              const dayName = formatDayShort(date);
+              const today = isToday(date);
+
+              return (
+                <div
+                  key={date}
+                  className={`flex flex-col items-center justify-center py-1.5 border-r border-b border-border ${
+                    today ? 'bg-primary/10' : ''
+                  }`}
+                >
+                  <span className={`text-[9px] uppercase leading-tight ${
+                    today ? 'text-primary font-semibold' : 'text-muted-foreground'
+                  }`}>
+                    {dayName}
+                  </span>
+                  <span className={`text-xs font-medium leading-tight ${
+                    today ? 'text-primary' : 'text-foreground'
+                  }`}>
+                    {day}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Habit Rows - using CSS Grid for proper alignment */}
+          <div>
+            {habits.map((habit) => (
+              <div
+                key={habit.id}
+                className="grid group"
+                style={{ gridTemplateColumns }}
+              >
+                {/* Habit name column - wraps text, no truncation */}
+                <div className="px-2 py-2 bg-card border-r border-b border-border flex items-start gap-1 min-h-[40px]">
+                  <span 
+                    className="flex-1 text-sm font-medium text-foreground whitespace-normal break-words leading-tight"
+                    title={habit.name}
+                  >
+                    {habit.name}
+                  </span>
+                  <button
+                    onClick={() => onDeleteHabit(habit.id)}
+                    className="p-0.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
+                    aria-label={`Delete ${habit.name}`}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
                 </div>
 
-                {/* Date headers - dynamically generated for selected month */}
+                {/* Day cells */}
                 {monthDays.map((date) => {
-                  const day = getDayFromISO(date);
-                  const dayName = formatDayShort(date);
+                  const completed = isHabitCompleted(habit.id, date);
                   const today = isToday(date);
 
                   return (
                     <div
                       key={date}
-                      className={`grid-cell flex-col gap-0.5 py-2 ${today ? 'grid-cell-today' : ''}`}
+                      className={`flex items-center justify-center border-r border-b border-border py-1.5 ${
+                        today ? 'bg-primary/10' : ''
+                      }`}
                     >
-                      <span className={`text-[10px] uppercase ${today ? 'text-primary font-semibold' : 'text-muted-foreground'}`}>
-                        {dayName}
-                      </span>
-                      <span className={`text-sm font-medium ${today ? 'text-primary' : 'text-foreground'}`}>
-                        {day}
-                      </span>
+                      <button
+                        onClick={() => onToggleHabit(habit.id, date)}
+                        className={`w-5 h-5 rounded border-2 cursor-pointer transition-all duration-150 flex items-center justify-center hover:border-primary/50 ${
+                          completed
+                            ? 'bg-primary border-primary'
+                            : 'border-border'
+                        }`}
+                        title={`${habit.name} - ${formatDayShort(date)} ${getDayFromISO(date)}`}
+                        aria-label={`Toggle ${habit.name} for ${formatDayShort(date)} ${getDayFromISO(date)}`}
+                      >
+                        {completed && <Check className="w-3 h-3 text-primary-foreground" />}
+                      </button>
                     </div>
                   );
                 })}
               </div>
-
-              {/* Habit Rows - checkbox values read from habit.records[date] */}
-              <div>
-                {habits.map((habit) => (
-                  <div key={habit.id} className="group">
-                    <HabitRow
-                      habit={habit}
-                      monthDays={monthDays}
-                      onToggle={onToggleHabit}
-                      onDelete={onDeleteHabit}
-                      isCompleted={isHabitCompleted}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       )}

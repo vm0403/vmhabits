@@ -1,6 +1,8 @@
+import { useMemo } from 'react';
 import { DailyData, HabitCompletionData } from '@/types/habit';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { BarChart3 } from 'lucide-react';
+import { useTheme } from '@/hooks/useTheme';
 
 interface BarChartsProps {
   weeklyData: DailyData[];
@@ -9,7 +11,16 @@ interface BarChartsProps {
 }
 
 const BarCharts = ({ weeklyData, habitCompletionData, totalHabits }: BarChartsProps) => {
+  const { isDark } = useTheme();
   const hasData = totalHabits > 0;
+
+  // Theme-aware colors
+  const chartColors = useMemo(() => ({
+    grid: 'hsl(var(--border))',
+    text: 'hsl(var(--muted-foreground))',
+    success: isDark ? 'hsl(168, 55%, 50%)' : 'hsl(168, 60%, 42%)',
+    successFull: isDark ? 'hsl(168, 60%, 55%)' : 'hsl(168, 50%, 55%)',
+  }), [isDark]);
 
   const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; payload?: { name?: string } }>; label?: string }) => {
     if (active && payload && payload.length) {
@@ -37,15 +48,15 @@ const BarCharts = ({ weeklyData, habitCompletionData, totalHabits }: BarChartsPr
           {hasData ? (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={weeklyData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} vertical={false} />
                 <XAxis
                   dataKey="label"
-                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+                  tick={{ fill: chartColors.text, fontSize: 11 }}
                   tickLine={false}
                   axisLine={false}
                 />
                 <YAxis
-                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+                  tick={{ fill: chartColors.text, fontSize: 11 }}
                   tickLine={false}
                   axisLine={false}
                   allowDecimals={false}
@@ -56,7 +67,7 @@ const BarCharts = ({ weeklyData, habitCompletionData, totalHabits }: BarChartsPr
                   {weeklyData.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
-                      fill={entry.completed === totalHabits && totalHabits > 0 ? 'hsl(168, 60%, 42%)' : 'hsl(168, 50%, 55%)'}
+                      fill={entry.completed === totalHabits && totalHabits > 0 ? chartColors.success : chartColors.successFull}
                     />
                   ))}
                 </Bar>
@@ -73,7 +84,7 @@ const BarCharts = ({ weeklyData, habitCompletionData, totalHabits }: BarChartsPr
       {/* Habit-wise Completion */}
       <div className="habit-card">
         <div className="flex items-center gap-2 mb-4">
-          <BarChart3 className="w-5 h-5 text-accent" />
+          <BarChart3 className="w-5 h-5 text-accent-foreground" />
           <h3 className="font-semibold text-foreground">Habit Completion Count</h3>
         </div>
         <div className="h-64 w-full">
@@ -84,10 +95,10 @@ const BarCharts = ({ weeklyData, habitCompletionData, totalHabits }: BarChartsPr
                 layout="vertical"
                 margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} horizontal={false} />
                 <XAxis
                   type="number"
-                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+                  tick={{ fill: chartColors.text, fontSize: 11 }}
                   tickLine={false}
                   axisLine={false}
                   allowDecimals={false}
@@ -95,7 +106,7 @@ const BarCharts = ({ weeklyData, habitCompletionData, totalHabits }: BarChartsPr
                 <YAxis
                   type="category"
                   dataKey="name"
-                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+                  tick={{ fill: chartColors.text, fontSize: 11 }}
                   tickLine={false}
                   axisLine={false}
                   width={80}
