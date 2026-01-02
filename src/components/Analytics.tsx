@@ -1,9 +1,10 @@
 import { DailyData, HabitCompletionData } from '@/types/habit';
-import { getCurrentMonthYear } from '@/utils/date';
+import { getMonthYearLabel } from '@/utils/date';
 import LineCharts from './LineCharts';
 import BarCharts from './BarCharts';
 import PieCharts from './PieCharts';
-import { BarChart3, TrendingUp, Target, CheckCircle2 } from 'lucide-react';
+import { BarChart3, TrendingUp, Target, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Button } from './ui/button';
 
 interface AnalyticsProps {
   dailyData: DailyData[];
@@ -18,6 +19,11 @@ interface AnalyticsProps {
     habitsCount: number;
     daysTracked: number;
   };
+  selectedYear: number;
+  selectedMonth: number;
+  isViewingCurrentMonth: boolean;
+  onPreviousMonth: () => void;
+  onNextMonth: () => void;
 }
 
 const Analytics = ({
@@ -26,16 +32,53 @@ const Analytics = ({
   habitCompletionData,
   cumulativeData,
   overallStats,
+  selectedYear,
+  selectedMonth,
+  isViewingCurrentMonth,
+  onPreviousMonth,
+  onNextMonth,
 }: AnalyticsProps) => {
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-display font-semibold text-foreground">
-          Analytics Dashboard
-        </h2>
+      {/* Header with Month Navigation */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={onPreviousMonth}
+              className="h-9 w-9"
+              aria-label="Previous month"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="min-w-[160px] text-center">
+              <h2 className="text-2xl font-display font-semibold text-foreground">
+                Analytics Dashboard
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {getMonthYearLabel(selectedYear, selectedMonth)}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={onNextMonth}
+              className="h-9 w-9"
+              aria-label="Next month"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+          {!isViewingCurrentMonth && (
+            <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+              Viewing history
+            </span>
+          )}
+        </div>
         <p className="text-sm text-muted-foreground">
-          {getCurrentMonthYear()} • {overallStats.daysTracked} days tracked
+          {overallStats.daysTracked} days tracked
         </p>
       </div>
 
