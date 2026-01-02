@@ -1,6 +1,16 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Habit, DailyData, HabitCompletionData } from '@/types/habit';
-import { getCurrentMonthDays, getCurrentMonthDaysUntilToday, getLastNDays, formatDateLabel } from '@/utils/date';
+import { 
+  getMonthDays, 
+  getMonthDaysUntilDate, 
+  getLastNDays, 
+  formatDateLabel,
+  getCurrentYear,
+  getCurrentMonth,
+  getPreviousMonth,
+  getNextMonth,
+  isCurrentMonth
+} from '@/utils/date';
 
 const STORAGE_KEY = 'habit-tracker-data';
 
@@ -18,6 +28,7 @@ const CHART_COLORS = [
 
 /**
  * Load habits from localStorage
+ * IMPORTANT: This loads the ENTIRE habit history, preserving all records
  */
 const loadHabits = (): Habit[] => {
   try {
@@ -45,6 +56,8 @@ const loadHabits = (): Habit[] => {
 
 /**
  * Save habits to localStorage
+ * IMPORTANT: This saves the ENTIRE habit history including all records
+ * Month navigation does NOT affect what is saved here
  */
 const saveHabits = (habits: Habit[]): void => {
   try {
@@ -56,12 +69,19 @@ const saveHabits = (habits: Habit[]): void => {
 
 /**
  * Custom hook for managing habits with localStorage persistence
+ * Supports month navigation while preserving all historical data
  */
 export const useHabits = () => {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  
+  // Month navigation state - defaults to current month
+  // These only control WHICH dates are displayed, NOT what is stored
+  const [selectedYear, setSelectedYear] = useState(getCurrentYear);
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth);
 
   // Load habits from localStorage on mount
+  // This loads ALL historical data - nothing is filtered or removed
   useEffect(() => {
     const storedHabits = loadHabits();
     setHabits(storedHabits);
@@ -69,11 +89,39 @@ export const useHabits = () => {
   }, []);
 
   // Save habits to localStorage whenever they change
+  // IMPORTANT: This saves the COMPLETE habit history, not just current month
   useEffect(() => {
     if (isLoaded) {
       saveHabits(habits);
     }
   }, [habits, isLoaded]);
+
+  /**
+   * Navigate to previous month
+   * IMPORTANT: This only changes the view, NOT the stored data
+   */
+  const goToPreviousMonth = useCallback(() => {
+    const { year, month } = getPreviousMonth(selectedYear, selectedMonth);
+    setSelectedYear(year);
+    setSelectedMonth(month);
+  }, [selectedYear, selectedMonth]);
+
+  /**
+   * Navigate to next month
+   * IMPORTANT: This only changes the view, NOT the stored data
+   */
+  const goToNextMonth = useCallback(() => {
+    const { year, month } = getNextMonth(selectedYear, selectedMonth);
+    setSelectedYear(year);
+    setSelectedMonth(month);
+  }, [selectedYear, selectedMonth]);
+
+  /**
+   * Check if currently viewing the current month
+   */
+  const isViewingCurrentMonth = useMemo(() => {
+    return isCurrentMonth(selectedYear, selectedMonth);
+  }, [selectedYear, selectedMonth]);
 
   const addHabit = useCallback((name: string) => {
     if (!name.trim()) return;
@@ -91,23 +139,34 @@ export const useHabits = () => {
     setHabits((prev) => prev.filter((habit) => habit.id !== id));
   }, []);
 
+  /**
+   * Toggle a habit record for a specific date
+   * IMPORTANT: This ONLY updates the specific date, preserving all other records
+   */
   const toggleHabitRecord = useCallback((id: number, date: string) => {
     setHabits((prev) =>
       prev.map((habit) => {
         if (habit.id !== id) return habit;
         
+        // Create a new records object to maintain immutability
         const newRecords = { ...habit.records };
         newRecords[date] = !newRecords[date];
         
+        // Remove false entries to keep storage clean
         if (!newRecords[date]) {
           delete newRecords[date];
         }
         
+        // Return new habit object, preserving all other records
         return { ...habit, records: newRecords };
       })
     );
   }, []);
 
+  /**
+   * Check if a habit is completed for a specific date
+   * Reads from the permanent records store
+   */
   const isHabitCompleted = useCallback(
     (id: number, date: string): boolean => {
       const habit = habits.find((h) => h.id === id);
@@ -116,22 +175,33 @@ export const useHabits = () => {
     [habits]
   );
 
-  // Memoized analytics data
-  const monthDays = useMemo(() => getCurrentMonthDays(), []);
-  const monthDaysUntilToday = useMemo(() => getCurrentMonthDaysUntilToday(), []);
+  // All days in the selected month (for grid display)
+  const monthDays = useMemo(() => 
+    getMonthDays(selectedYear, selectedMonth), 
+    [selectedYear, selectedMonth]
+  );
+  
+  // Days up to today for analytics (only for past/current months)
+  const monthDaysUntilToday = useMemo(() => 
+    getMonthDaysUntilDate(selectedYear, selectedMonth), 
+    [selectedYear, selectedMonth]
+  );
+  
   const last7Days = useMemo(() => getLastNDays(7), []);
 
   // Daily completion data for line/bar charts
+  // Only shows data for days that have passed in the selected month
   const dailyData = useMemo((): DailyData[] => {
     return monthDaysUntilToday.map((date) => ({
       date,
       label: formatDateLabel(date),
+      // Read from permanent records - no data modification
       completed: habits.filter((h) => h.records[date] === true).length,
       total: habits.length,
     }));
   }, [habits, monthDaysUntilToday]);
 
-  // Weekly data (last 7 days)
+  // Weekly data (last 7 days) - always shows current week regardless of selected month
   const weeklyData = useMemo((): DailyData[] => {
     return last7Days.map((date) => ({
       date,
@@ -142,10 +212,12 @@ export const useHabits = () => {
   }, [habits, last7Days]);
 
   // Habit completion data for pie/bar charts
+  // Calculated from permanent records for the selected month
   const habitCompletionData = useMemo((): HabitCompletionData[] => {
     const daysCount = monthDaysUntilToday.length;
     
     return habits.map((habit, index) => {
+      // Count completions from permanent records for selected month
       const completed = monthDaysUntilToday.filter((date) => habit.records[date] === true).length;
       return {
         id: habit.id,
@@ -158,7 +230,7 @@ export const useHabits = () => {
     });
   }, [habits, monthDaysUntilToday]);
 
-  // Overall stats
+  // Overall stats for the selected month
   const overallStats = useMemo(() => {
     const totalPossible = monthDaysUntilToday.length * habits.length;
     const totalCompleted = habits.reduce((sum, habit) => {
@@ -205,5 +277,11 @@ export const useHabits = () => {
     habitCompletionData,
     overallStats,
     cumulativeData,
+    // Month navigation
+    selectedYear,
+    selectedMonth,
+    goToPreviousMonth,
+    goToNextMonth,
+    isViewingCurrentMonth,
   };
 };

@@ -21,6 +21,12 @@ const Index = () => {
     habitCompletionData,
     overallStats,
     cumulativeData,
+    // Month navigation - only affects view, NOT stored data
+    selectedYear,
+    selectedMonth,
+    goToPreviousMonth,
+    goToNextMonth,
+    isViewingCurrentMonth,
   } = useHabits();
 
   if (!isLoaded) {
@@ -61,10 +67,15 @@ const Index = () => {
           <MonthlyGrid
             habits={habits}
             monthDays={monthDays}
+            selectedYear={selectedYear}
+            selectedMonth={selectedMonth}
+            isViewingCurrentMonth={isViewingCurrentMonth}
             onAddHabit={addHabit}
             onDeleteHabit={deleteHabit}
             onToggleHabit={toggleHabitRecord}
             isHabitCompleted={isHabitCompleted}
+            onPreviousMonth={goToPreviousMonth}
+            onNextMonth={goToNextMonth}
           />
         )}
         {activeView === 'analytics' && (
@@ -74,6 +85,11 @@ const Index = () => {
             habitCompletionData={habitCompletionData}
             cumulativeData={cumulativeData}
             overallStats={overallStats}
+            selectedYear={selectedYear}
+            selectedMonth={selectedMonth}
+            isViewingCurrentMonth={isViewingCurrentMonth}
+            onPreviousMonth={goToPreviousMonth}
+            onNextMonth={goToNextMonth}
           />
         )}
       </main>

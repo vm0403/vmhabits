@@ -4,6 +4,20 @@
  */
 
 /**
+ * Get current year
+ */
+export const getCurrentYear = (): number => {
+  return new Date().getFullYear();
+};
+
+/**
+ * Get current month (0-based)
+ */
+export const getCurrentMonth = (): number => {
+  return new Date().getMonth();
+};
+
+/**
  * Get today's date in ISO format (YYYY-MM-DD)
  */
 export const getTodayISO = (): string => {
@@ -41,9 +55,14 @@ export const getLastNDays = (n: number): string[] => {
  */
 export const getCurrentMonthDays = (): string[] => {
   const today = new Date();
-  const year = today.getFullYear();
-  const month = today.getMonth();
-  
+  return getMonthDays(today.getFullYear(), today.getMonth());
+};
+
+/**
+ * Get all days for a specific month and year
+ * This is the primary function for month navigation
+ */
+export const getMonthDays = (year: number, month: number): string[] => {
   // Handle leap years correctly
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const days: string[] = [];
@@ -61,13 +80,36 @@ export const getCurrentMonthDays = (): string[] => {
  */
 export const getCurrentMonthDaysUntilToday = (): string[] => {
   const today = new Date();
-  const year = today.getFullYear();
-  const month = today.getMonth();
-  const currentDay = today.getDate();
+  return getMonthDaysUntilDate(today.getFullYear(), today.getMonth(), today);
+};
+
+/**
+ * Get days in a specific month up to a given date
+ * If the month is in the past, returns all days
+ * If the month is in the future, returns empty array
+ * If the month is current, returns days up to today
+ */
+export const getMonthDaysUntilDate = (year: number, month: number, referenceDate: Date = new Date()): string[] => {
+  const today = referenceDate;
+  const todayYear = today.getFullYear();
+  const todayMonth = today.getMonth();
+  const todayDay = today.getDate();
   
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
   const days: string[] = [];
   
-  for (let day = 1; day <= currentDay; day++) {
+  // If viewing a future month, return empty array
+  if (year > todayYear || (year === todayYear && month > todayMonth)) {
+    return days;
+  }
+  
+  // Determine the last day to include
+  let lastDay = daysInMonth;
+  if (year === todayYear && month === todayMonth) {
+    lastDay = todayDay;
+  }
+  
+  for (let day = 1; day <= lastDay; day++) {
     const date = new Date(year, month, day);
     days.push(formatDateISO(date));
   }
@@ -103,6 +145,17 @@ export const getCurrentMonthYear = (): string => {
 };
 
 /**
+ * Get month name and year for a specific month/year
+ */
+export const getMonthYearLabel = (year: number, month: number): string => {
+  const date = new Date(year, month, 1);
+  return date.toLocaleDateString('en-US', { 
+    month: 'long', 
+    year: 'numeric' 
+  });
+};
+
+/**
  * Get day number from ISO date
  */
 export const getDayFromISO = (dateISO: string): number => {
@@ -115,6 +168,34 @@ export const getDayFromISO = (dateISO: string): number => {
  */
 export const isToday = (dateISO: string): boolean => {
   return dateISO === getTodayISO();
+};
+
+/**
+ * Check if we're viewing the current month
+ */
+export const isCurrentMonth = (year: number, month: number): boolean => {
+  const today = new Date();
+  return year === today.getFullYear() && month === today.getMonth();
+};
+
+/**
+ * Get previous month and year (handles year rollover)
+ */
+export const getPreviousMonth = (year: number, month: number): { year: number; month: number } => {
+  if (month === 0) {
+    return { year: year - 1, month: 11 };
+  }
+  return { year, month: month - 1 };
+};
+
+/**
+ * Get next month and year (handles year rollover)
+ */
+export const getNextMonth = (year: number, month: number): { year: number; month: number } => {
+  if (month === 11) {
+    return { year: year + 1, month: 0 };
+  }
+  return { year, month: month + 1 };
 };
 
 /**

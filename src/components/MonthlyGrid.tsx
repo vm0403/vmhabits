@@ -1,40 +1,81 @@
 import { Habit } from '@/types/habit';
-import { isToday, getDayFromISO, formatDayShort, getCurrentMonthYear } from '@/utils/date';
+import { isToday, getDayFromISO, formatDayShort, getMonthYearLabel } from '@/utils/date';
 import HabitForm from './HabitForm';
 import HabitRow from './HabitRow';
-import { Calendar, Sparkles } from 'lucide-react';
+import { Calendar, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Button } from './ui/button';
 
 interface MonthlyGridProps {
   habits: Habit[];
   monthDays: string[];
+  selectedYear: number;
+  selectedMonth: number;
+  isViewingCurrentMonth: boolean;
   onAddHabit: (name: string) => void;
   onDeleteHabit: (id: number) => void;
   onToggleHabit: (id: number, date: string) => void;
   isHabitCompleted: (id: number, date: string) => boolean;
+  onPreviousMonth: () => void;
+  onNextMonth: () => void;
 }
 
 const MonthlyGrid = ({
   habits,
   monthDays,
+  selectedYear,
+  selectedMonth,
+  isViewingCurrentMonth,
   onAddHabit,
   onDeleteHabit,
   onToggleHabit,
   isHabitCompleted,
+  onPreviousMonth,
+  onNextMonth,
 }: MonthlyGridProps) => {
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
+      {/* Header with Month Navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-display font-semibold text-foreground">
-            {getCurrentMonthYear()}
-          </h2>
+        <div className="flex items-center gap-4">
+          {/* Month Navigation */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={onPreviousMonth}
+              className="h-9 w-9"
+              aria-label="Previous month"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="min-w-[160px] text-center">
+              <h2 className="text-2xl font-display font-semibold text-foreground">
+                {getMonthYearLabel(selectedYear, selectedMonth)}
+              </h2>
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={onNextMonth}
+              className="h-9 w-9"
+              aria-label="Next month"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+          {!isViewingCurrentMonth && (
+            <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+              Viewing history
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-4">
           <p className="text-sm text-muted-foreground">
             {habits.length} habit{habits.length !== 1 ? 's' : ''} • {monthDays.length} days
           </p>
-        </div>
-        <div className="w-full sm:w-auto sm:max-w-sm">
-          <HabitForm onAddHabit={onAddHabit} />
+          <div className="w-full sm:w-auto sm:max-w-sm">
+            <HabitForm onAddHabit={onAddHabit} />
+          </div>
         </div>
       </div>
 
@@ -64,7 +105,7 @@ const MonthlyGrid = ({
                   <span className="text-sm font-medium text-muted-foreground">Habit</span>
                 </div>
 
-                {/* Date headers */}
+                {/* Date headers - dynamically generated for selected month */}
                 {monthDays.map((date) => {
                   const day = getDayFromISO(date);
                   const dayName = formatDayShort(date);
@@ -86,7 +127,7 @@ const MonthlyGrid = ({
                 })}
               </div>
 
-              {/* Habit Rows */}
+              {/* Habit Rows - checkbox values read from habit.records[date] */}
               <div>
                 {habits.map((habit) => (
                   <div key={habit.id} className="group">
